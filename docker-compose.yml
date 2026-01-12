@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/gitstart
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./src:/app/src
+
+  db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=gitstart
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    command: celery -A src.tasks worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/gitstart
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
